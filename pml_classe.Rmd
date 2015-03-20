@@ -1,4 +1,5 @@
-Load libraries
+
+#Load libraries
 
 ```{r}
 library(caret)
@@ -32,7 +33,7 @@ testing <- df[-inTrain,]
 
 
 #Train the model with Random forests
-```{r}
+```{r CACHE=TRUE}
 registerDoParallel(clust <- makeCluster(detectCores()))
 model <- train(training$classe ~ ., data=training, method="rf",trControl=trainControl(method = "cv", number = 10))
 stopCluster(clust)
@@ -59,7 +60,7 @@ plot(varImp(model))
 ```{r}
 prediction <- predict(model, testing) 
 new_testing <- cbind(testing,prediction)
-select(new_testing, user_name, classe, prediction)
+#select(new_testing, user_name, classe, prediction)
 table(prediction,testing$classe)
 
 ```
@@ -69,9 +70,9 @@ table(prediction,testing$classe)
 #Reading the validation set or the Final submission set.
 ```{r}
 validation <- read.csv("pml-testing.csv")
-validation <- validation[cols]
+validation <- validation[cols[1:55]]
 finalPrediction <- predict(model, validation)
-finaPrediction
+finalPrediction
 
 ```
 
@@ -86,6 +87,6 @@ pml_write_files = function(x){
     write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
   }
 }
-pml_write_files(finalModel)
+pml_write_files(finalPrediction)
 
 ```
