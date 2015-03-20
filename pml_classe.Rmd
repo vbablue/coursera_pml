@@ -1,17 +1,20 @@
+#Machine Learning model building 
 
-#Load libraries
+###Load libraries
+Load all the libraries that are needed. Caret is the package that we will be interfacing with. parallel package is needed for parallel processing as the model takes some time to run. 
 
 ```{r}
-library(caret)
-library(ggplot2)
-library(dplyr)
-library(parallel)
-library(doParallel)
+suppressPackageStartupMessages(library(caret))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(parallel))
+suppressPackageStartupMessages(library(doParallel))
 
 ```
 
 
-Reading the training data
+###Reading the training data and featur engineering. 
+Read the training data and ignore the NA's and #DIV/0!. These are clearly visible during the data exploration of the training dataset. First column is having id's and will have no impact on the model and can be ignored. All the timestamp columns can be ignored as well as they seem to have no impact. 
 ```{r}
 df <- read.csv("pml-training.csv", na.strings=c("NA", "#DIV/0!", ""))
 df <- df[,colSums(is.na(df)) == 0]
@@ -24,6 +27,7 @@ cols <- colnames(df)
 
 
 #Creating partitions for testing and training
+Create two partitions of the dataset, 60% will be going to training the model and 40% will be going to the testing of the model. The final model is then used to predict the final values. 
 ```{r}
 inTrain <- createDataPartition(y=df$classe,p=0.60, list=FALSE)
 training <- df[inTrain,]
@@ -33,6 +37,7 @@ testing <- df[-inTrain,]
 
 
 #Train the model with Random forests
+Of the many algorithms avaialble, random forests seems to be the most accurate with good scalibility. The method is used with Cross Validation (part of the caret interface). Also the number of cores are detected to parallellize the process to the number of available cores. 
 ```{r CACHE=TRUE}
 registerDoParallel(clust <- makeCluster(detectCores()))
 model <- train(training$classe ~ ., data=training, method="rf",trControl=trainControl(method = "cv", number = 10))
@@ -41,7 +46,8 @@ stopCluster(clust)
 ```
 
 
-#Explore the results
+###Explore the results
+Explore the results that the model has given out. 
 ```{r}
 model$results
 model$bestTune
@@ -49,14 +55,20 @@ model$finalModel
 ```
 
 
-#Cross Validation
+###Confusion Matrix and Out of Sample Error
+Run a cross validation with the confusion matrix to see accuracy details.
 ```{r}
-confusionMatrix(predict(model, newdata=testing), testing$classe)
+cm <- confusionMatrix(predict(model, newdata=testing), testing$classe)
+```
+Take a look at the sensitivity and specificity and other statistics. The accuracy of the model is pretty high and this seems to be a good model. 
+```{r}
+cm
 plot(varImp(model))
 ```
 
 
-#Predict and explore
+###Predict and explore (Test dataset)
+Test the newly built model on the testing dataset. Explore the data a little to see the side-by-side comparison of the actual value an dthe predicted value. 
 ```{r}
 prediction <- predict(model, testing) 
 new_testing <- cbind(testing,prediction)
@@ -66,8 +78,8 @@ table(prediction,testing$classe)
 ```
 
 
-#Final Prediction
-#Reading the validation set or the Final submission set.
+###Final Prediction
+Reading the validation set or the Final submission set. Read only the columns that were used in predicting the model. Finally, apply the model and look at the predictions. These predictions are correct predictions for all the 20 samples given in the validation set. 
 ```{r}
 validation <- read.csv("pml-testing.csv")
 validation <- validation[cols[1:55]]
@@ -78,7 +90,8 @@ finalPrediction
 
 
 
-#Writing the 20 files out based on the prediction built using the model
+###Writing the 20 files out based on the prediction built using the model
+Boilerplate code to generate the 20 files with 20 prediction for the final project submission. 
 ```{r}
 pml_write_files = function(x){
   n = length(x)
